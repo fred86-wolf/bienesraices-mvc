@@ -1,6 +1,6 @@
 import express from 'express';
 import {body} from 'express-validator'
-import {admin, createProperty,saveProperty,addImage,storeImage,updateProperty,saveChanges,deleteProperty,viewProperty,sendMessage} from '../controllers/propertyController.js'
+import {admin, createProperty,saveProperty,addImage,storeImage,updateProperty,saveChanges,deleteProperty,changeStatus,viewProperty,sendMessage,viewMsg} from '../controllers/propertyController.js'
 import routeProtected from '../middleware/routeProtected.js';
 import upload from '../middleware/uploadImage.js';
 import getIndentifyUser from '../middleware/getUser.js'
@@ -46,11 +46,22 @@ routeProtected,
 deleteProperty
 )
 
+router.put('/properties/:id',
+routeProtected,
+changeStatus
+)
+
 router.get('/property/:id',getIndentifyUser,viewProperty)
 
 
 router.post('/property/:id',
+getIndentifyUser,
 body('message').isLength({min:10}).withMessage('El mensaje no puede ir vacío o es muy corto'),
 sendMessage)
+
+router.get('/messages/:id',
+routeProtected,
+viewMsg
+)
 
 export default router

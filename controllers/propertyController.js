@@ -1,7 +1,7 @@
 import { validationResult } from 'express-validator'
 import {unlink} from 'node:fs/promises'
-import {Price,Category,Property}from '../models/index.js'
-import {isSeller} from '../helpers/index.js'
+import {Price,Category,Property,Message,User}from '../models/index.js'
+import {isSeller,dateFormate} from '../helpers/index.js'
 
 const admin = async (req,res) => {
 
@@ -29,7 +29,8 @@ const admin = async (req,res) => {
                 },
                 include:[
                     {model:Price,as:'price'},
-                    {model:Category, as:'category'}
+                    {model:Category, as:'category'},
+                    {model:Message, as:'messages'}
                 ],
             }),
             Property.count({
@@ -290,6 +291,30 @@ const deleteProperty = async (req,res) => {
     res.redirect('/your-properties')
 }
 
+const changeStatus = async (req,res) => {
+    
+    const {id} = req.params
+
+    const property = await Property.findByPk(id)
+
+    if (!property) {
+        return res.redirect('/your-properties')
+    }
+
+    if (property.idUser.toString() !== req.user.id.toString()) {
+        return res.redirect('/your-properties')
+    }
+
+    property.posted = !property.posted
+    
+    await property.save()
+
+    res.json({
+        result:true
+    })
+
+}
+
 const viewProperty = async (req,res) => {
 
     const {id} = req.params
@@ -301,7 +326,7 @@ const viewProperty = async (req,res) => {
         ]
     })
 
-    if (!property) {
+    if (!property || !property.posted) {
         return res.redirect('/404')
     }
 
@@ -343,12 +368,47 @@ const sendMessage = async (req,res) => {
         })
     }
 
-    res.render('properties/view',{
-        property,
-        page:property.title,
-        csrfToken:req.csrfToken(),
-        user:req.user,
-        isSeller:isSeller(req.user?.id,property.idUser)
+    const {message} = req.body
+    const {id:idProperty} = req.params
+    const {id:idUser} = req.user
+
+    
+    const ok = await Message.create({
+        message,
+        idProperty,
+        idUser
+    })
+
+    res.redirect('/')
+
+}
+
+const viewMsg = async (req,res) => {
+
+    const {id} = req.params
+
+    const property = await Property.findByPk(id,{
+        include:[
+            {model:Message,as:'messages',
+            include:[
+                {model:User.scope('deletePassword'),as:'user'}
+            ]},
+        ]
+    })
+
+    if (!property) {
+        return res.redirect('/your-properties')
+    }
+
+    if (property.idUser.toString() !== req.user.id.toString()) {
+        return res.redirect('/your-properties')
+    }
+
+
+    res.render('properties/messages',{
+        page:'Mensajes',
+        messages:property.messages,
+        dateFormate
     })
 
 }
@@ -362,6 +422,8 @@ export {
     updateProperty,
     saveChanges,
     deleteProperty,
+    changeStatus,
     viewProperty,
-    sendMessage
+    sendMessage,
+    viewMsg
 }

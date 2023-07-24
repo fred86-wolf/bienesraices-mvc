@@ -69,6 +69,11 @@ const formLogin = (req,res) =>{
     })
 }
 
+
+const logOut = (req,res) => {
+    return res.clearCookie('_token').status(200).redirect('/auth/login')
+}
+
 const formRegister = (req,res) =>{
     res.render('auth/register',{
         page:'Crear Cuenta',
@@ -270,6 +275,7 @@ const newPassword = async (req,res) => {
 
 export {
     authLogin,
+    logOut,
     formLogin,
     formRegister,
     toRegister,
